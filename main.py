@@ -5,13 +5,13 @@ import random as r
 
 app = Flask(__name__)
 
-##Connect to Database
+# Connect to Database
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///cafes.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
 
-##Cafe TABLE Configuration
+# Cafe TABLE Configuration
 class Cafe(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(250), unique=True, nullable=False)
@@ -28,9 +28,10 @@ class Cafe(db.Model):
 
 with app.app_context():
     db.create_all()
+    cafes = db.session.query(Cafe).all()
 
 
-def make_cafe_dict(cafe):
+def make_cafe_json(cafe):
     return {
         "id": cafe.id,
         "name": cafe.name,
@@ -53,30 +54,56 @@ def home():
 
 @app.route("/random")
 def random():
-    cafes = db.session.query(Cafe).all()
+    global cafes
     random_cafe = r.choice(cafes)
-    return jsonify(cafe=make_cafe_dict(random_cafe))
+    return jsonify(cafe=make_cafe_json(random_cafe))
 
 
 @app.route("/all")
 def get_all():
-    cafes = Cafe.query.order_by(Cafe.id).all()
+    global cafes
     cafes_dict = {}
     for cafe in cafes:
-        cafes_dict[f"{cafe.id}"] = make_cafe_dict(cafe)
+        cafes_dict[f"{cafe.id}"] = make_cafe_json(cafe)
     # jsonify() jumbles up the order of cafes_dict
+    return jsonify(cafes=cafes_dict)
+
+
+@app.route("/search")
+def search():
+    global cafes
+    cafes_dict = {}
+    # Gets value provided after "?loc="
+    loc = request.args.get("loc")
+    for cafe in cafes:
+        if loc == cafe.location:
+            cafes_dict[f"{cafe.id}"] = make_cafe_json(cafe)
+    if cafes_dict:
+        return jsonify(cafes=cafes_dict)
     return jsonify(
-        cafes=cafes_dict
+        error={
+            "Not Found": "Sorry, we don't have a cafe in that location."
+        }
     )
 
 
-## HTTP GET - Read Record
-
-## HTTP POST - Create Record
-
-## HTTP PUT/PATCH - Update Record
-
-## HTTP DELETE - Delete Record
+@app.route("/add", methods=["POST"])
+def post_new_cafe():
+    new_cafe = Cafe(
+        name=request.form.get("name"),
+        map_url=request.form.get("map_url"),
+        img_url=request.form.get("img_url"),
+        location=request.form.get("loc"),
+        has_sockets=bool(request.form.get("sockets")),
+        has_toilet=bool(request.form.get("toilet")),
+        has_wifi=bool(request.form.get("wifi")),
+        can_take_calls=bool(request.form.get("calls")),
+        seats=request.form.get("seats"),
+        coffee_price=request.form.get("coffee_price"),
+    )
+    db.session.add(new_cafe)
+    db.session.commit()
+    return jsonify(response={"success": "Successfully added the new cafe."})
 
 
 if __name__ == '__main__':
