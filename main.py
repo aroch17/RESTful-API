@@ -3,6 +3,8 @@ from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import asc
 import random as r
 
+API_KEY = "R1E2S3T4F5U6L7"
+
 app = Flask(__name__)
 
 # Connect to Database
@@ -112,8 +114,23 @@ def update_price(cafe_id):
     if cafe_to_update:
         cafe_to_update.coffee_price = request.args.get("new_price")
         db.session.commit()
-        return jsonify(success="Successfully updated the price.")
-    return jsonify(error={"Not Found": "A cafe with that id does not exist."})
+        return jsonify(success="Successfully updated the price."), 200  # status code
+    return jsonify(error={"Not Found": "A cafe with that id does not exist."}), 404
+
+
+@app.route("/report-closed/<cafe_id>", methods=["GET", "DELETE"])
+def delete(cafe_id):
+    key = request.args.get("api-key")
+    if key == API_KEY:
+        cafe_to_delete = db.session.query(Cafe).get(int(cafe_id))
+        if cafe_to_delete:
+            db.session.delete(cafe_to_delete)
+            db.session.commit()
+            return jsonify(success="Success, cafe has been deleted."), 200
+        else:
+            return jsonify(error={"Not Found": "A cafe with that id does not exist."}), 404
+    else:
+        return jsonify(error="Sorry, that's not allowed. Make sure you have the correct api key."), 403
 
 
 if __name__ == '__main__':
