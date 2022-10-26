@@ -88,7 +88,7 @@ def search():
 
 
 @app.route("/add", methods=["POST"])
-def post_new_cafe():
+def add_cafe():
     new_cafe = Cafe(
         name=request.form.get("name"),
         map_url=request.form.get("map_url"),
@@ -104,6 +104,16 @@ def post_new_cafe():
     db.session.add(new_cafe)
     db.session.commit()
     return jsonify(response={"success": "Successfully added the new cafe."})
+
+
+@app.route("/update-price/<cafe_id>", methods=["GET", "PATCH"])
+def update_price(cafe_id):
+    cafe_to_update = db.session.query(Cafe).get(int(cafe_id))
+    if cafe_to_update:
+        cafe_to_update.coffee_price = request.args.get("new_price")
+        db.session.commit()
+        return jsonify(success="Successfully updated the price.")
+    return jsonify(error={"Not Found": "A cafe with that id does not exist."})
 
 
 if __name__ == '__main__':
