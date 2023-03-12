@@ -1,9 +1,11 @@
+import os
+
 from flask import Flask, jsonify, render_template, request
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import asc
 import random as r
 
-API_KEY = "R1E2S3T4F5U6L7"
+API_KEY = os.environ.get("API_KEY")
 
 app = Flask(__name__)
 
